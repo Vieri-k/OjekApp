@@ -3,11 +3,8 @@ package com.example.ojekapp;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -15,15 +12,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 
-public class adapterAll extends FirebaseRecyclerAdapter<modelAll, adapterAll.myviewholder>{
+public class ListOjekAdapter extends FirebaseRecyclerAdapter<OjekModel, ListOjekAdapter.myviewholder>{
 
-    public adapterAll(@NonNull FirebaseRecyclerOptions<modelAll> options1)
+    public ListOjekAdapter(@NonNull FirebaseRecyclerOptions<OjekModel> options)
     {
-        super(options1);
+        super(options);
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull final myviewholder holder, final int position, @NonNull final modelAll model)
+    protected void onBindViewHolder(@NonNull final myviewholder holder, final int position, @NonNull final OjekModel model)
     {
         holder.name.setText(model.getName());
         holder.phone.setText(model.getPhone());
@@ -41,7 +38,7 @@ public class adapterAll extends FirebaseRecyclerAdapter<modelAll, adapterAll.myv
 
     class myviewholder extends RecyclerView.ViewHolder
     {
-        //        CircleImageView img;
+//        CircleImageView img;
         ImageView edit,delete;
         TextView name,phone,region;
         public myviewholder(@NonNull View itemView)
@@ -57,6 +54,5 @@ public class adapterAll extends FirebaseRecyclerAdapter<modelAll, adapterAll.myv
         }
     }
 }
-
 
 

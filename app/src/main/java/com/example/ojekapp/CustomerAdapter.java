@@ -8,7 +8,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,17 +17,15 @@ import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.database.FirebaseDatabase;
 
-import java.util.List;
+public class CustomerAdapter extends FirebaseRecyclerAdapter<CusOrder, CustomerAdapter.MyViewHolder>{
 
-public class adapterCustomer extends FirebaseRecyclerAdapter<CusOrder, adapterCustomer.myviewholder>{
-
-    public adapterCustomer(@NonNull FirebaseRecyclerOptions<CusOrder> option)
+    public CustomerAdapter(@NonNull FirebaseRecyclerOptions<CusOrder> option)
     {
         super(option);
     }
 
     @Override
-    protected void onBindViewHolder(@NonNull final myviewholder holder, final int position, @NonNull final CusOrder cusOrder)
+    protected void onBindViewHolder(@NonNull final MyViewHolder holder, final int position, @NonNull final CusOrder cusOrder)
     {
         holder.name.setText(cusOrder.getName());
         holder.phone.setText(cusOrder.getPhone());
@@ -70,8 +67,8 @@ public class adapterCustomer extends FirebaseRecyclerAdapter<CusOrder, adapterCu
             private Context context = holder.btnMap.getContext();
             @Override
             public void onClick(View view) {
-                Intent intent = new Intent(context,Map.class);
-                intent.putExtra("Order ID", cusOrder.getOrderID());
+                Intent intent = new Intent(context, MapActivity.class);
+                intent.putExtra("OrderID", cusOrder.getOrderID());
                 context.startActivity(intent);
             }
         });
@@ -79,19 +76,19 @@ public class adapterCustomer extends FirebaseRecyclerAdapter<CusOrder, adapterCu
 
     @NonNull
     @Override
-    public myviewholder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
+    public MyViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType)
     {
         View view= LayoutInflater.from(parent.getContext()).inflate(R.layout.customercard,parent,false);
-        return new myviewholder(view);
+        return new MyViewHolder(view);
     }
 
 
-    class myviewholder extends RecyclerView.ViewHolder
+    class MyViewHolder extends RecyclerView.ViewHolder
     {
         //        CircleImageView img;
         Button btnTO, btnMap;
         TextView name,phone,lokasi,jarak,total, Lt, Lg, OID;
-        public myviewholder(@NonNull View itemView)
+        public MyViewHolder(@NonNull View itemView)
         {
             super(itemView);
 //            img=(CircleImageView) itemView.findViewById(R.id.img1);

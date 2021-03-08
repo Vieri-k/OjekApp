@@ -1,49 +1,25 @@
 package com.example.ojekapp;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-import android.os.Handler;
-import android.text.InputType;
-import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import com.firebase.ui.database.FirebaseRecyclerOptions;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
-import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity  {
     RecyclerView recview, recviewcus, recviewojek;
-    com.example.ojekapp.adapter adapter;
-    com.example.ojekapp.adapterCustomer adapterCus;
-    com.example.ojekapp.adapterAll adapterojekall;
+    ListOjekAdapter adapter;
+    CustomerAdapter adapterCus;
+
     private final String log = "RESULT DATA";
 
     // Customer Order
@@ -60,12 +36,12 @@ public class MainActivity extends AppCompatActivity  {
         recview=(RecyclerView)findViewById(R.id.recview);
         recview.setLayoutManager(new LinearLayoutManager(this));
 
-        FirebaseRecyclerOptions<model> options =
-                new FirebaseRecyclerOptions.Builder<model>()
-                        .setQuery(FirebaseDatabase.getInstance().getReference().child("driver"), model.class)
+        FirebaseRecyclerOptions<OjekModel> options =
+                new FirebaseRecyclerOptions.Builder<OjekModel>()
+                        .setQuery(FirebaseDatabase.getInstance().getReference().child("driver"), OjekModel.class)
                         .build();
 
-        adapter=new adapter(options);
+        adapter=new ListOjekAdapter(options);
         recview.setAdapter(adapter);
 
         /////////////////////////////////////////////////////
@@ -91,13 +67,13 @@ public class MainActivity extends AppCompatActivity  {
                         .setQuery(FirebaseDatabase.getInstance().getReference("order"), CusOrder.class)
                         .build();
 
-        adapterCus = new adapterCustomer(option);
+        adapterCus = new CustomerAdapter(option);
         recviewcus.setAdapter(adapterCus);
 
     }
 
     public void btnmap(View view){
-        Intent intent = new Intent(getApplicationContext(), Map.class);
+        Intent intent = new Intent(getApplicationContext(), MapActivity.class);
         startActivity(intent);
     }
 

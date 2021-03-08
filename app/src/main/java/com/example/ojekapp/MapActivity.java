@@ -3,19 +3,17 @@ package com.example.ojekapp;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.animation.ObjectAnimator;
+import android.animation.TypeEvaluator;
+import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,9 +25,6 @@ import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
-import com.mapbox.api.directions.v5.models.DirectionsResponse;
-import com.mapbox.api.directions.v5.models.DirectionsRoute;
-import com.mapbox.api.geocoding.v5.models.CarmenFeature;
 import com.mapbox.geojson.Feature;
 import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.Point;
@@ -38,10 +33,8 @@ import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
-import com.mapbox.mapboxsdk.camera.CameraPosition;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
-import com.mapbox.mapboxsdk.geometry.LatLngBounds;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
@@ -50,34 +43,22 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
-import com.mapbox.mapboxsdk.plugins.places.autocomplete.PlaceAutocomplete;
-import com.mapbox.mapboxsdk.plugins.places.autocomplete.model.PlaceOptions;
+import com.mapbox.mapboxsdk.style.layers.PropertyFactory;
 import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
-import com.mapbox.services.android.navigation.ui.v5.NavigationLauncher;
-import com.mapbox.services.android.navigation.ui.v5.NavigationLauncherOptions;
-import com.mapbox.services.android.navigation.ui.v5.route.NavigationMapRoute;
-import com.mapbox.services.android.navigation.v5.navigation.NavigationRoute;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import timber.log.Timber;
 
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
 
-public class Map extends AppCompatActivity implements OnMapReadyCallback, PermissionsListener {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, PermissionsListener {
 
 //    private static final LatLngBounds LOCKED_MAP_CAMERA_BOUNDS = new LatLngBounds.Builder()
 //            .include(new LatLng(40.87096725853152, -74.08277394720501))
@@ -96,11 +77,13 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
     private Query referenceorder;
 
 //    double LatD, LongD;
-    String ID;
+    String orderID;
     public TextView Ltn, tx, tx2;
-
+    private LatLng currentPosition = new LatLng(64.900932, -18.167040);
     MyService servisku = null;
-
+    MarkerOptions motorMarkerOptions = null;
+    private ValueAnimator animator;
+    private GeoJsonSource geoJsonSource;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -114,15 +97,16 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
         mapView.getMapAsync(this);
         back = findViewById(R.id.fab_location_back);
 
-        ID = getIntent().getStringExtra("Order ID");
+        orderID = getIntent().getStringExtra("OrderID");
 
         Ltn = (TextView)findViewById(R.id.locatLat);
-        Ltn.setText(ID);
+        Ltn.setText(orderID);
 
         servisku = new MyService();
 
         tx = (TextView)findViewById(R.id.locat);
         tx2 = (TextView)findViewById(R.id.locatlong);
+
 
 
         int count = 100; //Declare as inatance variable
@@ -138,7 +122,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
                     @Override
                     public void run() {
 
-                        referenceorder = FirebaseDatabase.getInstance().getReference().child("order").orderByChild("OrderID").equalTo(ID);
+                        referenceorder = FirebaseDatabase.getInstance().getReference().child("order").orderByChild("OrderID").equalTo(orderID);
                         referenceorder.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -152,6 +136,11 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
                                         tx.setText(latit);
                                         tx2.setText(longi);
 
+                                        double latt = Double.parseDouble(latit);
+                                        double lon = Double.parseDouble(longi);
+                                        Log.d("LOG_POS",latit);
+                                        updateMarkerPosition(new LatLng(latt, lon));
+//                                        motorMarker.setPosition(new LatLng(latt, lon));
                                     }
                                 }
                             }
@@ -186,12 +175,82 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
         });
 
     }
+    private final ValueAnimator.AnimatorUpdateListener animatorUpdateListener =
+            new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    LatLng animatedPosition = (LatLng) valueAnimator.getAnimatedValue();
+                    geoJsonSource.setGeoJson(Point.fromLngLat(animatedPosition.getLongitude(), animatedPosition.getLatitude()));
+                }
+            };
+    private void updateMarkerPosition(LatLng position) {
+// This method is where we update the marker position once we have new coordinates. First we
+// check if this is the first time we are executing this handler, the best way to do this is
+// check if marker is null;
+        if (mapboxMap.getStyle() != null) {
+            GeoJsonSource spaceStationSource = mapboxMap.getStyle().getSourceAs("source-id");
+            if (spaceStationSource != null) {
+                spaceStationSource.setGeoJson(FeatureCollection.fromFeature(
+                        Feature.fromGeometry(Point.fromLngLat(position.getLongitude(), position.getLatitude()))
+                ));
+            }
+        }
+
+        animator = ObjectAnimator
+                .ofObject(latLngEvaluator, currentPosition, position)
+                .setDuration(2000);
+        animator.addUpdateListener(animatorUpdateListener);
+        animator.start();
+
+        currentPosition = position;
+//
+//        motorMarkerOptions.position(position);
+//        Marker marker = motorMarkerOptions.getMarker();
+//        this.mapboxMap.updateMarker(marker);
+
+// Lastly, animate the camera to the new position so the user
+// wont have to search for the marker and then return.
+        mapboxMap.animateCamera(CameraUpdateFactory.newLatLng(position));
+    }
+
+    private static final TypeEvaluator<LatLng> latLngEvaluator = new TypeEvaluator<LatLng>() {
+
+        private final LatLng latLng = new LatLng();
+
+        @Override
+        public LatLng evaluate(float fraction, LatLng startValue, LatLng endValue) {
+            latLng.setLatitude(startValue.getLatitude()
+                    + ((endValue.getLatitude() - startValue.getLatitude()) * fraction));
+            latLng.setLongitude(startValue.getLongitude()
+                    + ((endValue.getLongitude() - startValue.getLongitude()) * fraction));
+            return latLng;
+        }
+    };
 
     @Override
     public void onMapReady(@NonNull MapboxMap mapboxMap) {
         this.mapboxMap = mapboxMap;
+        geoJsonSource = new GeoJsonSource("source-id",
+                Feature.fromGeometry(Point.fromLngLat(currentPosition.getLongitude(),
+                        currentPosition.getLatitude())));
+        if (animator != null && animator.isStarted()) {
+            currentPosition = (LatLng) animator.getAnimatedValue();
+            animator.cancel();
+        }
 
-        MarkerOptions options = new MarkerOptions();
+
+//        return true;
+//        motorMarkerOptions = new MarkerOptions();
+//        motorMarkerOptions.title("Motor "+orderID);
+//        IconFactory iconFactory = IconFactory.getInstance(MapActivity.this);
+//        Icon icon = iconFactory.fromResource(R.drawable.ic_motorcycle);
+//        motorMarkerOptions.icon(icon);
+//        motorMarkerOptions.position(new LatLng(-7, 109));
+////        motorMarker = motorMarkerOptions.getMarker();
+//        this.mapboxMap.addMarker(motorMarkerOptions);
+
+
+
 //        String Lat = tx.getText().toString();
 ////        Lat = NumberFormat.getInstance().format(tx);
 //        Double LatD = Double.parseDouble(Lat.trim());
@@ -199,15 +258,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
 ////        Long = NumberFormat.getInstance().format(tx2);
 //        Double LongD = Double.parseDouble(Long.trim());
 
-        options.title("Pangkalan 1");
-        options.position(new LatLng(-7.8364255, 111.4868002));
 
-        IconFactory iconFactory;
-        iconFactory = IconFactory.getInstance(Map.this);
-//        Icon icon = iconFactory.fromResource(R.drawable.ic_motorcycle);
-//        options.icon(icon);
-
-//        mapboxMap.addMarker(new MarkerOptions().position().icon(iconFactory.fromResource(R.drawable.ic_motorcycle)));
 
 
         mapboxMap.setStyle(new Style.Builder().fromUri(Style.OUTDOORS),
@@ -217,6 +268,17 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
                         List<Feature> symbolLayerIconFeatureList = new ArrayList<>();
                         enableLocationComponent(style);
                         initLayers(style);
+                        style.addImage(("marker_icon"), BitmapFactory.decodeResource(
+                                getResources(), R.drawable.ic_motorcycle));
+
+                        style.addSource(geoJsonSource);
+
+                        style.addLayer(new SymbolLayer("layer-id", "source-id")
+                                .withProperties(
+                                        PropertyFactory.iconImage("marker_icon"),
+                                        PropertyFactory.iconIgnorePlacement(true),
+                                        PropertyFactory.iconAllowOverlap(true)
+                                ));
                         mapboxMap.addOnMapClickListener(new MapboxMap.OnMapClickListener() {
                             @Override
                             public boolean onMapClick(@NonNull LatLng point) {
@@ -275,7 +337,9 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
         if (granted) {
             mapboxMap.getStyle(new Style.OnStyleLoaded() {
                 @Override
-                public void onStyleLoaded(@NonNull Style style) { enableLocationComponent(style); }
+                public void onStyleLoaded(@NonNull Style style) {
+                    enableLocationComponent(style);
+                }
             });
         }else {
             Toast.makeText(this, "Permission not granted", Toast.LENGTH_LONG).show();
