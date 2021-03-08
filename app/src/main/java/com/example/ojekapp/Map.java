@@ -207,7 +207,7 @@ public class Map extends AppCompatActivity implements OnMapReadyCallback, Permis
 //        Icon icon = iconFactory.fromResource(R.drawable.ic_motorcycle);
 //        options.icon(icon);
 
-        mapboxMap.addMarker(new MarkerOptions().position().icon(iconFactory.fromResource(R.drawable.ic_motorcycle)));
+//        mapboxMap.addMarker(new MarkerOptions().position().icon(iconFactory.fromResource(R.drawable.ic_motorcycle)));
 
 
         mapboxMap.setStyle(new Style.Builder().fromUri(Style.OUTDOORS),
